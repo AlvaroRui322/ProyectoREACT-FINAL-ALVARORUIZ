@@ -1,0 +1,170 @@
+/* Contenedor principal */
+.pokemon-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 2rem;
+    background-color: #f8f9fa; /* Fondo suave */
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); /* Sombra sutil */
+    font-family: 'Roboto', sans-serif; /* Tipografía moderna */
+}
+
+/* Título principal */
+h1 {
+    text-align: center;
+    color: #333;
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Filtros */
+.filter-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+.filter-container input,
+.filter-container select,
+.filter-container button {
+    padding: 0.75rem 1rem;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.3s ease;
+}
+
+.filter-container input:focus,
+.filter-container select:focus {
+    outline: none;
+    border-color: #5c9ded;
+}
+
+.filter-container button {
+    background-color: #5c9ded;
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.filter-container button:hover {
+    background-color: #3b7fd3;
+}
+
+/* Tarjetas de Pokémon */
+.pokemon-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+}
+
+.pokemon-card {
+    background-color: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    text-align: center;
+    transition: transform 0.3s ease;
+}
+
+.pokemon-card:hover {
+    transform: translateY(-5px);
+}
+
+.pokemon-card h3 {
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.pokemon-card img {
+    width: 100px;
+    height: 100px;
+}
+
+.pokemon-card p {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Botón de añadir */
+.pokemon-card button {
+    margin-top: 1rem;
+    padding: 0.6rem 1.2rem;
+    background-color: #3b7fd3;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.pokemon-card button:hover {
+    background-color: #285bb5;
+}
+
+/* Paginación */
+.pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 2rem;
+}
+
+.pagination button {
+    background-color: #5c9ded;
+    color: white;
+    border: none;
+    padding: 0.6rem 1rem;
+    margin: 0 0.3rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.pagination button:hover {
+    background-color: #3b7fd3;
+}
+
+.pagination .active {
+    background-color: #285bb5;
+}
+
+/* Responsive */
+@media (max-width: 600px) {
+    .filter-container {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .pokemon-card img {
+        width: 80px;
+        height: 80px;
+    }
+}
+
+/* Botón de volver arriba */
+.scroll-top-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    background-color: #ff4d4d;
+    color: white;
+    border: none;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: background-color 0.3s ease;
+}
+
+.scroll-top-btn:hover {
+    background-color: #e03e3e;
+}
+
