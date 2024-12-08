@@ -1,38 +1,30 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
+import { AuthContext } from "../context/UserContext";
 import "../styles/Pokemon.css";
+import Swal from "sweetalert2";
 
 const Home = () => {
     const [pokemonList, setPokemonList] = useState([]);
     const [filteredPokemons, setFilteredPokemons] = useState([]);
-    const [filters, setFilters] = useState({
-        name: "",
-        type: "",
-        minWeight: "",
-        minHeight: "",
-        abilitiesCount: "",
-        baseExperience: "",
-    });
+    const [filters, setFilters] = useState({ name: "", type: "" });
     const [currentPage, setCurrentPage] = useState(1);
     const pokemonsPerPage = 12;
     const [types, setTypes] = useState([]);
-    const [showScrollTopBtn, setShowScrollTopBtn] = useState(false);
+    const [teams, setTeams] = useState(() => {
+        const storedTeams = localStorage.getItem("teams");
+        return storedTeams ? JSON.parse(storedTeams) : [];
+    });
+
+    const { currentUser } = useContext(AuthContext);
 
     useEffect(() => {
         fetchPokemons();
         fetchTypes();
-
-        const handleScroll = () => {
-            const bottomReached = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight;
-            setShowScrollTopBtn(bottomReached);
-        };
-
-        window.addEventListener("scroll", handleScroll);
-        return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
     const fetchPokemons = async () => {
         try {
-            const response = await fetch(`https://pokeapi.co/api/v2/pokemon?limit=150`);
+            const response = await fetch("https://pokeapi.co/api/v2/pokemon?limit=150");
             const data = await response.json();
             const detailedPokemons = await Promise.all(
                 data.results.map(async (pokemon) => {
@@ -51,10 +43,7 @@ const Home = () => {
         try {
             const response = await fetch("https://pokeapi.co/api/v2/type");
             const data = await response.json();
-            const validTypes = data.results.filter(
-                (type) => type.name !== "stellar" && type.name !== "unknown"
-            );
-            setTypes(validTypes.map((type) => type.name));
+            setTypes(data.results.map((type) => type.name));
         } catch (error) {
             console.error("Error fetching Pokémon types:", error);
         }
@@ -62,32 +51,80 @@ const Home = () => {
 
     const applyFilters = () => {
         const filtered = pokemonList.filter((pokemon) => {
-            const matchesName = filters.name === "" || pokemon.name.toLowerCase().includes(filters.name.toLowerCase());
+            const matchesName = filters.name === "" || pokemon.name.includes(filters.name.toLowerCase());
             const matchesType = filters.type === "" || pokemon.types.some((t) => t.type.name === filters.type);
-            const matchesWeight = filters.minWeight === "" || pokemon.weight >= parseInt(filters.minWeight);
-            const matchesHeight = filters.minHeight === "" || pokemon.height >= parseInt(filters.minHeight);
-            const matchesAbilities = filters.abilitiesCount === "" || pokemon.abilities.length >= parseInt(filters.abilitiesCount);
-            const matchesExperience = filters.baseExperience === "" || pokemon.base_experience >= parseInt(filters.baseExperience);
-
-            return matchesName && matchesType && matchesWeight && matchesHeight && matchesAbilities && matchesExperience;
+            return matchesName && matchesType;
         });
         setFilteredPokemons(filtered);
         setCurrentPage(1);
+    };
+
+    const createTeam = () => {
+        Swal.fire({
+            title: "Crear nuevo equipo",
+            input: "text",
+            inputLabel: "Nombre del equipo",
+            inputPlaceholder: "Escribe el nombre del equipo",
+            showCancelButton: true,
+            confirmButtonText: "Crear",
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                const newTeam = { name: result.value, pokemons: [] };
+                const updatedTeams = [...teams, newTeam];
+                setTeams(updatedTeams);
+                localStorage.setItem("teams", JSON.stringify(updatedTeams));
+                Swal.fire("Equipo creado", `El equipo "${result.value}" ha sido creado.`, "success");
+            }
+        });
+    };
+
+    const handleAddToTeam = (pokemon) => {
+        if (!currentUser) {
+            Swal.fire("Inicia sesión", "Debes estar registrado para añadir Pokémon a un equipo.", "warning");
+            return;
+        }
+
+        if (teams.length === 0) {
+            Swal.fire({
+                title: "No tienes equipos",
+                text: "Primero crea un equipo para añadir Pokémon.",
+                icon: "info",
+                confirmButtonText: "Crear equipo",
+            }).then(() => createTeam());
+            return;
+        }
+
+        Swal.fire({
+            title: "Selecciona un equipo",
+            input: "select",
+            inputOptions: teams.reduce((acc, team, index) => {
+                acc[index] = team.name;
+                return acc;
+            }, {}),
+            inputPlaceholder: "Selecciona un equipo",
+            showCancelButton: true,
+            confirmButtonText: "Añadir",
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const selectedIndex = parseInt(result.value);
+                if (!isNaN(selectedIndex)) {
+                    const updatedTeams = [...teams];
+                    updatedTeams[selectedIndex].pokemons.push(pokemon);
+                    setTeams(updatedTeams);
+                    localStorage.setItem("teams", JSON.stringify(updatedTeams));
+                    Swal.fire("Pokémon añadido", `${pokemon.name} añadido al equipo "${updatedTeams[selectedIndex].name}".`, "success");
+                }
+            }
+        });
     };
 
     const indexOfLastPokemon = currentPage * pokemonsPerPage;
     const indexOfFirstPokemon = indexOfLastPokemon - pokemonsPerPage;
     const currentPokemons = filteredPokemons.slice(indexOfFirstPokemon, indexOfLastPokemon);
 
-    const paginate = (pageNumber) => setCurrentPage(pageNumber);
-
-    const scrollToTop = () => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    };
-
     return (
         <div className="pokemon-container">
-            <h1>POKEMON TEAM BUILDER</h1>
+            <h1>Pokémon Team Builder</h1>
 
             {/* Filtros */}
             <div className="filter-container">
@@ -108,95 +145,31 @@ const Home = () => {
                         </option>
                     ))}
                 </select>
-
-                {/* Peso mínimo */}
-                <select
-                    value={filters.minWeight}
-                    onChange={(e) => setFilters({ ...filters, minWeight: e.target.value })}
-                >
-                    <option value="">Peso mínimo</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <option value="150">150</option>
-                </select>
-
-                {/* Altura mínima */}
-                <select
-                    value={filters.minHeight}
-                    onChange={(e) => setFilters({ ...filters, minHeight: e.target.value })}
-                >
-                    <option value="">Altura mínima</option>
-                    <option value="5">5</option>
-                    <option value="10">10</option>
-                    <option value="15">15</option>
-                </select>
-
-                {/* Número de habilidades */}
-                <select
-                    value={filters.abilitiesCount}
-                    onChange={(e) => setFilters({ ...filters, abilitiesCount: e.target.value })}
-                >
-                    <option value="">Habilidades mínimas</option>
-                    <option value="1">1</option>
-                    <option value="2">2</option>
-                    <option value="3">3</option>
-                </select>
-
-                {/* Experiencia base */}
-                <select
-                    value={filters.baseExperience}
-                    onChange={(e) => setFilters({ ...filters, baseExperience: e.target.value })}
-                >
-                    <option value="">Experiencia base mínima</option>
-                    <option value="50">50</option>
-                    <option value="100">100</option>
-                    <option value="150">150</option>
-                </select>
-
-                <button onClick={applyFilters}>Aplicar Filtros</button>
+                <button onClick={applyFilters}>Aplicar filtros</button>
             </div>
-
             {/* Lista de Pokémon */}
             <div className="pokemon-list">
-                {currentPokemons.map((pokemon, index) => (
-                    <div key={pokemon.id} className={`pokemon-card ${index % 2 === 0 ? "even" : "odd"}`}>
-                        <h3>{pokemon.name.charAt(0).toUpperCase() + pokemon.name.slice(1)}</h3>
+                {currentPokemons.map((pokemon) => (
+                    <div key={pokemon.id} className="pokemon-card">
+                        <h3>{pokemon.name}</h3>
                         <img src={pokemon.sprites.front_default} alt={pokemon.name} />
-                        <p>Tipo: {pokemon.types.map((t) => t.type.name).join(", ")}</p>
-                        <p>Altura: {pokemon.height}</p>
-                        <p>Peso: {pokemon.weight}</p>
-                        <p>Habilidades: {pokemon.abilities.length}</p>
-                        <p>Experiencia Base: {pokemon.base_experience}</p>
-                        <button>Añadir al equipo</button>
+                        <button onClick={() => handleAddToTeam(pokemon)}>Añadir al equipo</button>
                     </div>
                 ))}
             </div>
-
             {/* Paginación */}
             <div className="pagination">
                 {Array.from({ length: Math.ceil(filteredPokemons.length / pokemonsPerPage) }, (_, i) => (
-                    <button
-                        key={i + 1}
-                        onClick={() => paginate(i + 1)}
-                        className={currentPage === i + 1 ? "active" : ""}
-                    >
+                    <button key={i} onClick={() => setCurrentPage(i + 1)}>
                         {i + 1}
                     </button>
                 ))}
             </div>
-
-            {/* Botón para volver arriba */}
-            {showScrollTopBtn && (
-                <button onClick={scrollToTop} className="scroll-top-btn">
-                    ↑
-                </button>
-            )}
         </div>
     );
 };
 
 export default Home;
-
 
 
 
